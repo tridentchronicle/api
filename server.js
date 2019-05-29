@@ -48,9 +48,10 @@ app.post('/login', function (req, res) {
     
     var email = req.body.email;
     var password = req.body.password;
-    dbConn.query("SELECT category FROM login where email = ? AND password = ?", [email, password], function (error, results, fields) {
+    var category = req.body.category;
+    dbConn.query("SELECT category FROM login where email = ? AND password = ? AND category = ?", [email, password, category], function (error, results, fields) {
         if (error) throw error;
-        return res.send({ error: false, data: results, message: 'users list.' });
+        return res.send({ error: false, output: results, message: 'success' });
     });
 });
 

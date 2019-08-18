@@ -1,0 +1,292 @@
+CREATE TABLE Persons (
+    ID int UNIQUE NOT NULL AUTO_INCREMENT,
+    PhoneNo varchar(15) NOT NULL ,
+    LastName varchar(255) NOT NULL,
+    FirstName varchar(255),
+    GSTIN varchar(15),
+    PRIMARY KEY (PhoneNo)
+  
+);
+
+INSERT INTO Persons(ID, PhoneNo,LastName,FirstName,GSTIN)
+VALUES (null,'+919419202370','Gupta','Neelaksh','');
+INSERT INTO Persons(ID, PhoneNo,LastName,FirstName)
+VALUES (null,'+917889379345','Bhau','Romit Singh');
+
+CREATE TABLE Orders (
+    ID int AUTO_INCREMENT,
+    PersonID varchar(15) NOT NULL ,
+    Price float,
+    Delivery_Charges float,
+    Discount float,
+    Margin float,
+    Total float,
+    AddressId int,
+    Status varchar(20),
+    CouponID int,
+    Created_at TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+    Updated_at TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+    Delivered_on TIMESTAMP NULL DEFAULT '1970-01-01 00:00:01',
+    PRIMARY KEY (ID),
+    FOREIGN KEY (PersonID) REFERENCES Persons(PhoneNo),
+    FOREIGN KEY (AddressId) REFERENCES Address(ID),
+    FOREIGN KEY (CouponId) REFERENCES Coupons(ID)
+);
+
+INSERT INTO Orders(ID, PersonID,Price,Delivery_Charges,Discount,Total,Created_at,Updated_at,Delivered_on,AddressId,Status,Margin,CouponID)
+VALUES (null,'+917889379345',1000,0,0,1000,'2019-07-27 06:08:53','2019-07-27 06:08:53','2019-07-27 06:08:53',2,'Recieved',5,1);
+
+CREATE TABLE Coupons (
+    ID int AUTO_INCREMENT,
+    Code varchar(20),
+    Description TEXT,
+    Amount float,
+    Date_expires  TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+    Individual_use BOOLEAN,
+    Usage_limit  int,
+    Usage_limit_per_user  int,
+    Limit_usage_to_x_items  int,
+    Minimum_amount  float,
+    Maximum_amount  float,
+    CouponImage TEXT,
+    Date_created TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+    Date_modified TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+    PRIMARY KEY (ID)
+);
+
+
+ALTER TABLE Coupons
+ADD COLUMN CouponImage TEXT AFTER  Date_modified;
+
+INSERT INTO Coupons(ID, Code,Description,Amount,Individual_use,Usage_limit,Usage_limit_per_user,Limit_usage_to_x_items,Maximum_amount,Minimum_amount,Date_created,Date_modified,Date_expires)
+VALUES (null,'welcome','Get 20% off on your first order','0.1',true,9999,10,9999,1000,900,'2019-08-03 00:00:01','2019-08-03 00:00:01','2038-01-19 03:14:07');
+
+SELECT Coupons.ID,Coupons.Code,Coupons.Description,Coupons.Amount,Coupons.Minimum_amount,Coupons.Maximum_amount,Coupons.Date_created,Coupons.Date_expires,Coupons.CouponImage
+FROM Coupons
+INNER JOIN CouponHistory ON Coupons.ID=CouponHistory.CouponID
+WHERE CouponHistory.PersonID='+917889379345' && CouponHistory.Count<Coupons.Usage_limit_per_user && Coupons.Date_expires>0
+UNION
+SELECT Coupons.ID,Coupons.Code,Coupons.Description,Coupons.Amount,Coupons.Minimum_amount,Coupons.Maximum_amount,Coupons.Date_created,Coupons.Date_expires,Coupons.CouponImage
+FROM Coupons
+LEFT JOIN CouponHistory ON Coupons.ID=CouponHistory.CouponID && CouponHistory.PersonID='+917889379345'
+WHERE CouponHistory.CouponID IS NULL &&  Coupons.Date_expires>0
+ORDER BY ID ASC;
+
+SELECT TOP 1 *
+FROM CouponHistory WHERE CouponID NOT IN (
+SELECT CouponID FROM CouponHistory WHERE PersonID='+917889379345')
+ORDER BY Value DESC
+
+CREATE TABLE CouponHistory (
+    ID int AUTO_INCREMENT,
+    PersonID varchar(15) NOT NULL ,
+    OrderID int,
+    CouponID int,
+    Count int,
+    PRIMARY KEY (ID),
+    FOREIGN KEY (PersonID) REFERENCES Persons(PhoneNo),
+    FOREIGN KEY (OrderId) REFERENCES Orders(ID),
+    FOREIGN KEY (CouponId) REFERENCES Coupons(ID)
+);
+
+
+INSERT INTO CouponHistory(ID, PersonID,OrderID,CouponID,Count)
+VALUES (null,'+917889379345',3,4,1);
+
+update CouponHistory set Count=Count+1 where PersonID='+918889379345';
+INSERT INTO CouponHistory(ID, PersonID,OrderID,CouponID,Count) VALUES(null,'+917889379345',2,1,1);
+select Count from CouponHistory where not exists (select * from CouponHistory PersonID='+918889379345') limit 1;
+
+CREATE TABLE Payments(
+    ID int AUTO_INCREMENT,
+    PersonID varchar(15) NOT NULL,
+    OrderID int,
+    Mode varchar(20),
+    Status varchar(20),
+    Amount float,
+    Date_created TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+    Date_modified TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+    PRIMARY KEY (ID),
+    FOREIGN KEY (OrderID) REFERENCES Orders(ID)
+);
+INSERT INTO Payments(ID, PersonID,OrderID,Mode,Status,Amount,Date_created,Date_modified)
+VALUES (null,'+917889379345',3,'POD','Pending',200,'2019-08-03 00:00:01','2019-08-03 00:00:01');
+
+CREATE TABLE Cart(
+    ID int AUTO_INCREMENT,
+    PersonID varchar(15) NOT NULL,
+    ProductID int,
+    Delivery_Charges float,
+    Quantity int,
+    PRIMARY KEY (ID),
+    FOREIGN KEY (ProductID) REFERENCES Products(ID)
+);
+
+INSERT INTO Cart(ID, PersonID,ProductID,Delivery_Charges,Quantity)
+VALUES (null,'+917889379345',1,0,100);
+
+CREATE TABLE OrderItems (
+    ID int AUTO_INCREMENT,
+    OrderID int,
+    ProductID int,
+    Quantity int,
+    Price float,
+    Margin float,
+    PRIMARY KEY (ID),
+    FOREIGN KEY (ProductID) REFERENCES Products(ID),
+    FOREIGN KEY (OrderID) REFERENCES Orders(ID)
+);
+
+
+INSERT INTO OrderItems(ID,OrderID,ProductID,Quantity,Price,Margin)
+VALUES (null,3,1,50,600,5);
+
+
+SELECT OrderItems.OrderID,Orders.Price,Orders.Discount,Orders.Margin,Orders.Created_at,Orders.Total,Orders.PersonID,Address.FirstName,Address.LastName,Address.Flat,Address.Area,Address.Town,Address.State,Address.Pincode,Orders.Status,Orders.Delivered_on,Products.ProductName,Products.BrandName,OrderItems.Price AS ProductPrice,OrderItems.Quantity AS ProductQuantity,OrderItems.Margin AS ProductMargin,Products.ProductImage
+FROM ((Orders
+INNER JOIN OrderItems ON Orders.ID=OrderItems.OrderID)
+INNER JOIN Products ON OrderItems.ProductID = Products.ID)
+INNER JOIN Address ON Orders.AddressID = Address.ID
+where Orders.PersonID='+917889379345'
+ORDER BY OrderItems.OrderID ASC;
+
+UPDATE Orders
+SET Price=(SELECT SUM(Price) From OrderItems where OrderID=2)
+WHERE ID=2;
+
+CREATE TABLE Products(
+    ID int AUTO_INCREMENT,
+    Price float,
+    Margin float,
+    Rating float,
+    Size varchar(20),
+    Min int,
+    ProductName varchar(255),
+    ProductDescription TEXT,
+    ProductImage  TEXT,
+    BrandName varchar(255),
+    CategoryName varchar(255),
+    SubCategoryName varchar(255),
+    PRIMARY KEY (ID),
+    FOREIGN KEY (BrandName) REFERENCES Brand(BrandName),
+    FOREIGN KEY (CategoryName) REFERENCES Category(CategoryName),
+    FOREIGN KEY (SubCategoryName) REFERENCES SubCategory(SubCategoryName)
+);
+INSERT INTO Products(ID, Price, Margin, Rating, ProductName,ProductDescription,ProductImage,BrandName,CategoryName,SubCategoryName,Size,Min)
+VALUES (null, 10,5.8,4.8,'Kitkat','Instant noodles','https://images-na.ssl-images-amazon.com/images/I/812o4EQXPKL._SL1500_.jpg','Nestle','Groceries','Beverages','100g','10');
+INSERT INTO Products(ID, Price, Margin, Rating, ProductName,ProductDescription,ProductImage,BrandName,CategoryName,SubCategoryName,Size,Min)
+VALUES (null, 10,5.8,4.8,'Maggi','Instant noodles','https://images-na.ssl-images-amazon.com/images/I/812o4EQXPKL._SL1500_.jpg','Nestle','Groceries','Beverages','100g','12');
+INSERT INTO Products(ID, Price, Margin, Rating, ProductName,ProductDescription,ProductImage,BrandName,CategoryName,SubCategoryName,Size,Min)
+VALUES (null, 10,5.8,4.8,'Honey','Instant noodles','https://images-na.ssl-images-amazon.com/images/I/812o4EQXPKL._SL1500_.jpg','Dabur','OTC & Health','Beverages','250g','5');
+
+
+SELECT Brand.BrandName,Products.price
+FROM Products
+INNER JOIN Brand ON Products.BrandID=Brand.ID;
+
+
+CREATE TABLE Brand(
+    ID int UNIQUE NOT NULL AUTO_INCREMENT,
+    BrandName varchar(255),
+    BrandImage TEXT,
+    PRIMARY KEY (BrandName)
+);
+
+INSERT INTO Brand (ID, BrandName,BrandImage)
+VALUES (null, 'Nestle','https://farm1.staticflickr.com/593/23119034953_319cd75283.jpg');
+INSERT INTO Brand (ID, BrandName,BrandImage)
+VALUES (null, 'Dabur','https://farm1.staticflickr.com/593/23119034953_319cd75283.jpg');
+
+CREATE TABLE Address(
+    ID int AUTO_INCREMENT,
+    PhoneNo varchar(15) NOT NULL ,
+    Pincode int(6),
+    Type ENUM('Default','Other'),
+    LastName varchar(255) NOT NULL,
+    FirstName varchar(255),
+    Town varchar(255),
+    State varchar(255),
+    Flat varchar(255),
+    Area varchar (255),
+    Landmark varchar(255),
+    Latitude float,
+    Longitude float,
+    PRIMARY KEY (ID),
+    FOREIGN KEY (PhoneNo) REFERENCES Persons(PhoneNo)
+);
+
+
+INSERT INTO Address (ID, PhoneNo, Pincode,Type,LastName,FirstName,Town,State,Flat,Area,Landmark,Latitude,Longitude)
+VALUES (null,'+917889379345' ,180010,'Other','Bhau','Romit Singh',"Jammu","Jammu and Kashmir" ,"H no 6","Nanak Nagar","Suvidha",34.01,75.05);
+INSERT INTO Address (ID, PhoneNo, Pincode,Town,State,Flat,Area,Landmark,Latitude,Longitude)
+VALUES (null,'+919419202370', 180010,"Jammu","Jammu and Kashmir" ,"H no 65","Trikuta Nagar","Suvidha",34.01,75.05);
+
+DELETE FROM Address WHERE ID='3';
+
+UPDATE Address 
+SET Pincode =  '180001',Flat =  'hno 66'
+ WHERE ID = '6';
+
+CREATE TABLE Category(
+    ID int UNIQUE NOT NULL AUTO_INCREMENT,
+    CategoryName varchar(255),
+    CategoryImage TEXT,
+    PRIMARY KEY (CategoryName)
+);
+
+INSERT INTO Category (ID, CategoryName, CategoryImage)
+VALUES (null, 'Groceries','https://www.winnipeggrocery.com/images/10788252_l.png');
+INSERT INTO Category (ID, CategoryName, CategoryImage)
+VALUES (null, 'Personal care','http://micktimes.com/wp-content/uploads/2019/03/Personal-Care-Products-990x557.jpg');
+INSERT INTO Category (ID, CategoryName, CategoryImage)
+VALUES (null, 'Homecare','http://www.crystalplastindustries.com/img/products/homecare.jpg');
+INSERT INTO Category (ID, CategoryName, CategoryImage)
+VALUES (null, 'OTC & Health','https://puretekcorp.com/wp-content/uploads/2019/02/puretek-brands.jpg');
+
+CREATE TABLE SubCategory(
+    ID int UNIQUE NOT NULL AUTO_INCREMENT,
+    CategoryName varchar(255),
+    SubCategoryName varchar(255),
+    SubCategoryImage TEXT,
+    PRIMARY KEY (SubCategoryName),
+    FOREIGN KEY (CategoryName) REFERENCES Category(CategoryName)
+);
+INSERT INTO SubCategory (ID, CategoryName,SubCategoryName, SubCategoryImage)
+VALUES (null,'Groceries', 'Beverages','http://indiannerve.com/wp-content/uploads/2014/10/soft-drinks.jpg');
+INSERT INTO SubCategory (ID, CategoryName,SubCategoryName, SubCategoryImage)
+VALUES (null,'Groceries', 'Biscuits','http://indiannerve.com/wp-content/uploads/2014/10/soft-drinks.jpg');
+INSERT INTO SubCategory (ID, CategoryName,SubCategoryName, SubCategoryImage)
+VALUES (null,'Personal care', 'Cough Syrups','http://indiannerve.com/wp-content/uploads/2014/10/soft-drinks.jpg');
+INSERT INTO SubCategory (ID, CategoryName,SubCategoryName, SubCategoryImage)
+VALUES (null,'Homecare', 'Detergents','http://indiannerve.com/wp-content/uploads/2014/10/soft-drinks.jpg');
+INSERT INTO SubCategory (ID, CategoryName,SubCategoryName, SubCategoryImage)
+VALUES (null,'OTC & Health', 'Cough Syrup','http://indiannerve.com/wp-content/uploads/2014/10/soft-drinks.jpg');
+
+UPDATE SubCategory
+SET CategoryName = 'Groceries',SubCategoryName='Biscuits'
+WHERE ID = 2;
+
+CREATE TABLE Banner(
+    ID int AUTO_INCREMENT,
+    BannerImage TEXT,
+    BannerTitle varchar(255),
+    BannerCaption varchar(255),
+    ProductID int,
+    PRIMARY KEY (ID),
+    FOREIGN KEY (ProductID) REFERENCES Products(ID)
+);
+
+INSERT INTO Banner (ID,BannerImage,BannerTitle,BannerCaption,ProductID)
+VALUES (null,'https://img.rcmbusiness.com/rcmshopping/category_banner_images/Grocery%20Banner.jpg','Maggi','Instant Noodles',2);
+
+
+ this.state.productdata.push({id: response.data.output[0].ID,
+        name:response.data.output[0].ProductName,
+        brand:response.data.output[0].BrandName,
+        size:response.data.output[0].Size,
+        image:response.data.output[0].ProductImage,
+        margin:response.data.output[0].Margin,
+        rating:response.data.output[0].Rating,
+        price:response.data.output[0].Price,
+    quantity:item.Quantity}
+        );

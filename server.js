@@ -195,7 +195,7 @@ app.post('/coupons', function (req, res) {
     var amount = req.body.amount;
     var phone = req.body.phone;
     var expiry = req.body.expiry;
-    connection.query("SELECT * FROM Coupons", function (error, results, fields) {
+    connection.query(" SELECT Coupons.ID,Coupons.Code,Coupons.Description,Coupons.Amount,Coupons.Minimum_amount,Coupons.Maximum_amount,Coupons.Date_created,Coupons.Date_expires,Coupons.CouponImage FROM Coupons INNER JOIN CouponHistory ON Coupons.ID=CouponHistory.CouponID WHERE CouponHistory.PersonID=? && CouponHistory.Count<Coupons.Usage_limit_per_user && Coupons.Date_expires>? && Coupons.Minimum_amount<=? UNION SELECT Coupons.ID,Coupons.Code,Coupons.Description,Coupons.Amount,Coupons.Minimum_amount,Coupons.Maximum_amount,Coupons.Date_created,Coupons.Date_expires,Coupons.CouponImage FROM Coupons LEFT JOIN CouponHistory ON Coupons.ID=CouponHistory.CouponID && CouponHistory.PersonID=? WHERE CouponHistory.CouponID IS NULL &&  Coupons.Date_expires>? && Coupons.Minimum_amount<=? ORDER BY ID ASC",[phone,expiry,amount,phone,expiry,amount], function (error, results, fields) {
         return res.send({ error: false, output: results, message: 'success' });
     });
 });
